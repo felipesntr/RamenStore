@@ -10,6 +10,8 @@ using RamenStore.Domain.Entities.Orders;
 using Microsoft.AspNetCore.Http;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using Microsoft.Extensions.Caching.Memory;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +21,7 @@ builder.Logging.AddConsole();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
+builder.Services.AddMemoryCache();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -60,7 +63,7 @@ app.UseHttpsRedirection();
 
 var apiKey = builder.Configuration["ApiKey"];
 
-app.MapGet("/broths", async (HttpRequest request, IMediator _sender, ILogger<Program> logger) =>
+app.MapGet("/broths", async (HttpRequest request, IMediator _sender, ILogger<Program> logger, IMemoryCache cache) =>
 {
     try
     {
@@ -74,21 +77,38 @@ app.MapGet("/broths", async (HttpRequest request, IMediator _sender, ILogger<Pro
             return Results.Json(new { message = "Forbidden" }, statusCode: 403);
         }
 
-        var broths = await _sender.Send(new GetAllBrothsQuery());
+        var cacheKey = "brothsList";
+        if (!cache.TryGetValue(cacheKey, out IEnumerable<object> cachedBroths))
+        {
+            var broths = await _sender.Send(new GetAllBrothsQuery());
+            if (broths.IsSuccess)
+            {
+                cachedBroths = broths.Value.Data;
+                cache.Set(cacheKey, cachedBroths, new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
+                });
+            }
+            else
+            {
+                return Results.Json(new { error = "Data retrieval failed" }, statusCode: 500);
+            }
+        }
 
-        return Results.Json(broths.Value.Data);
+        return Results.Json(cachedBroths);
     }
     catch (Exception ex)
     {
         logger.LogError("Exception caught: {Message}, StackTrace: {StackTrace}", ex.Message, ex.StackTrace);
-        return Results.Json(new { error = "Internal Server Error" });
+        return Results.Json(new { error = "Internal Server Error" }, statusCode: 500);
     }
 })
 .WithName("listBroths")
-.Produces(200, typeof(IEnumerable<object>))
-.Produces(403, typeof(object));
+.Produces<IEnumerable<object>>(200)
+.Produces(403, typeof(object))
+.Produces(500, typeof(object));
 
-app.MapGet("/proteins", async (HttpRequest request, IMediator _sender, ILogger<Program> logger) =>
+app.MapGet("/proteins", async (HttpRequest request, IMediator _sender, ILogger<Program> logger, IMemoryCache cache) =>
 {
     try
     {
@@ -102,19 +122,36 @@ app.MapGet("/proteins", async (HttpRequest request, IMediator _sender, ILogger<P
             return Results.Json(new { message = "Forbidden" }, statusCode: 403);
         }
 
-        var proteins = await _sender.Send(new GetAllProteinsQuery());
+        var cacheKey = "proteinsList";
+        if (!cache.TryGetValue(cacheKey, out IEnumerable<object> cachedProteins))
+        {
+            var proteins = await _sender.Send(new GetAllProteinsQuery());
+            if (proteins.IsSuccess)
+            {
+                cachedProteins = proteins.Value.Data;
+                cache.Set(cacheKey, cachedProteins, new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(3000)
+                });
+            }
+            else
+            {
+                return Results.Json(new { error = "Data retrieval failed" }, statusCode: 500);
+            }
+        }
 
-        return Results.Json(proteins.Value.Data);
+        return Results.Json(cachedProteins);
     }
     catch (Exception ex)
     {
         logger.LogError("Exception caught: {Message}, StackTrace: {StackTrace}", ex.Message, ex.StackTrace);
-        return Results.Json(new { error = "Internal Server Error" });
+        return Results.Json(new { error = "Internal Server Error" }, statusCode: 500);
     }
 })
 .WithName("listProteins")
-.Produces(200, typeof(IEnumerable<object>))
-.Produces(403, typeof(object));
+.Produces<IEnumerable<object>>(200)
+.Produces(403, typeof(object))
+.Produces(500, typeof(object));
 
 app.MapPost("/order", async (HttpRequest request, IMediator mediator, ILogger<Program> logger) =>
 {
@@ -136,9 +173,9 @@ app.MapPost("/order", async (HttpRequest request, IMediator mediator, ILogger<Pr
         PlaceAnOrderCommand command;
         try
         {
-            command = JsonSerializer.Deserialize<PlaceAnOrderCommand>(body);
+            command = System.Text.Json.JsonSerializer.Deserialize<PlaceAnOrderCommand>(body);
         }
-        catch (JsonException)
+        catch (System.Text.Json.JsonException)
         {
             return Results.Json(new { error = "Invalid JSON format" }, statusCode: 400);
         }
