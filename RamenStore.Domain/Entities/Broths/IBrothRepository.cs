@@ -2,5 +2,6 @@
 
 public interface IBrothRepository
 {
-    Task<IEnumerable<Broth>> GetAll(CancellationToken cancellationToken = default);
+    Task<IEnumerable<Broth>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<Broth> GetByIdAsync(string id, CancellationToken cancellationToken = default);
 }

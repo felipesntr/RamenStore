@@ -2,9 +2,9 @@
 
 namespace RamenStore.Domain.Entities.Proteins;
 
-public sealed class Protein : Entity
+public sealed class Protein : Entity<string>
 {
-    public Protein(Guid id, string imageInactive, string imageActive, string name, string description, decimal price) : base(id)
+    public Protein(string id, string imageInactive, string imageActive, string name, string description, decimal price) : base(id)
     {
         ImageInactive = imageInactive;
         ImageActive = imageActive;

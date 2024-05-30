@@ -1,11 +1,11 @@
 ﻿namespace RamenStore.Domain.Abstractions;
 
-public abstract class AgregateRoot
+public abstract class AgregateRoot<TAgregateId>
 {
-    protected AgregateRoot(Guid id)
+    protected AgregateRoot(TAgregateId id)
     {
         Id = id;
     }
 
-    public Guid Id { get; init; }
+    public TAgregateId Id { get; init; }
 }

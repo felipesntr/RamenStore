@@ -1,10 +1,10 @@
 ﻿using RamenStore.Domain.Abstractions;
 
-namespace RamenStore.Domain.Agregates.Orders;
+namespace RamenStore.Domain.Entities.Orders;
 
-public sealed class Order : Entity
+public sealed class Order : Entity<string>
 {
-    public Order(Guid id, string brothId, string proteinId, string description, string image) : base(id)
+    public Order(string id, string brothId, string proteinId, string description, string image) : base(id)
     {
         BrothId = brothId;
         ProteinId = proteinId;

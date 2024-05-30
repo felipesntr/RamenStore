@@ -1,10 +1,10 @@
 ﻿namespace RamenStore.Domain.Abstractions;
-public abstract class Entity
+public abstract class Entity<TEntityId>
 {
-    protected Entity(Guid id)
+    protected Entity(TEntityId id)
     {
         Id = id;
     }
 
-    public Guid Id { get; init; }
+    public TEntityId Id { get; init; }
 }

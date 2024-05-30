@@ -2,9 +2,9 @@
 
 namespace RamenStore.Domain.Entities.Broths;
 
-public sealed class Broth : Entity
+public sealed class Broth : Entity<string>
 {
-    public Broth(Guid id, string imageInactive, string imageActive, string name, string description, decimal price) : base(id)
+    public Broth(string id, string imageInactive, string imageActive, string name, string description, decimal price) : base(id)
     {
         ImageInactive = imageInactive;
         ImageActive = imageActive;
