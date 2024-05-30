@@ -57,17 +57,15 @@ var apiKey = builder.Configuration["ApiKey"];
 
 app.MapGet("/broths", async (HttpRequest request, IMediator _sender) =>
 {
-#if (!DEBUG)
-    if(!request.Headers.TryGetValue("x-api-key", out var providedApiKey || string.IsNullOrWhiteSpace(providedApiKey) )
+    if (!request.Headers.TryGetValue("x-api-key", out var providedApiKey) || string.IsNullOrWhiteSpace(providedApiKey))
     {
         return Results.Json(new { error = "x-api-key header missing" }, statusCode: 403);
     }
 
-    if (|| !providedApiKey.Equals(apiKey))
+    if (!providedApiKey.Equals(apiKey))
     {
         return Results.Json(new { message = "Forbidden" }, statusCode: 403);
     }
-#endif
 
     var broths = await _sender.Send(new GetAllBrothsQuery());
 
@@ -79,17 +77,15 @@ app.MapGet("/broths", async (HttpRequest request, IMediator _sender) =>
 
 app.MapGet("/proteins", async (HttpRequest request, IMediator _sender) =>
 {
-#if (!DEBUG)
-    if(!request.Headers.TryGetValue("x-api-key", out var providedApiKey || string.IsNullOrWhiteSpace(providedApiKey) )
+    if (!request.Headers.TryGetValue("x-api-key", out var providedApiKey) || string.IsNullOrWhiteSpace(providedApiKey))
     {
         return Results.Json(new { error = "x-api-key header missing" }, statusCode: 403);
     }
 
-    if (|| !providedApiKey.Equals(apiKey))
+    if (!providedApiKey.Equals(apiKey))
     {
         return Results.Json(new { message = "Forbidden" }, statusCode: 403);
     }
-#endif
 
     var proteins = await _sender.Send(new GetAllProteinsQuery());
 
@@ -100,19 +96,17 @@ app.MapGet("/proteins", async (HttpRequest request, IMediator _sender) =>
 .Produces(403, typeof(object));
 
 
-app.MapPost("/orders", async (PlaceAnOrderCommand command, [FromHeader(Name = "x-api-key")] string providedKey, HttpRequest request, IMediator mediator) =>
+app.MapPost("/orders", async (PlaceAnOrderCommand command, HttpRequest request, IMediator mediator) =>
 {
-#if (!DEBUG)
-    if(!request.Headers.TryGetValue("x-api-key", out var providedApiKey || string.IsNullOrWhiteSpace(providedApiKey) )
+    if (!request.Headers.TryGetValue("x-api-key", out var providedApiKey) || string.IsNullOrWhiteSpace(providedApiKey))
     {
         return Results.Json(new { error = "x-api-key header missing" }, statusCode: 403);
     }
 
-    if (|| !providedApiKey.Equals(apiKey))
+    if (!providedApiKey.Equals(apiKey))
     {
         return Results.Json(new { message = "Forbidden" }, statusCode: 403);
     }
-#endif
 
     if (string.IsNullOrEmpty(command.BrothId) || string.IsNullOrEmpty(command.ProteinId))
     {
@@ -135,7 +129,7 @@ app.MapPost("/orders", async (PlaceAnOrderCommand command, [FromHeader(Name = "x
         {
             id = result.Value.Id,
             description = result.Value.Description,
-            image = "https://tech.redventures.com.br/icons/ramen/ramenChasu.png"
+            image = "not-found.svg"
         });
     }
 
