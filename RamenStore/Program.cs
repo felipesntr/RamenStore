@@ -130,39 +130,23 @@ app.MapPost("/order", async (HttpRequest request, IMediator mediator, ILogger<Pr
             return Results.Json(new { message = "Forbidden" }, statusCode: 403);
         }
 
-        PlaceAnOrderCommand ParseCommandFromText(string text)
+        using var reader = new StreamReader(request.Body);
+        var body = await reader.ReadToEndAsync();
+
+        PlaceAnOrderCommand command;
+        try
         {
-            var lines = text.Split('\n');
-            if (lines.Length < 2) return null;
-
-            var brothId = lines[0].Trim();
-            var proteinId = lines[1].Trim();
-
-            return new PlaceAnOrderCommand
-            {
-                BrothId = brothId,
-                ProteinId = proteinId
-            };
+            command = JsonSerializer.Deserialize<PlaceAnOrderCommand>(body);
         }
-
-        string requestBody;
-        using (var reader = new StreamReader(request.Body))
+        catch (JsonException)
         {
-            requestBody = await reader.ReadToEndAsync();
-        }
-
-        var command = ParseCommandFromText(requestBody);
-        if (command == null)
-        {
-            return Results.Json(new { error = "Invalid request body" }, statusCode: 400);
+            return Results.Json(new { error = "Invalid JSON format" }, statusCode: 400);
         }
 
         if (string.IsNullOrEmpty(command.BrothId) || string.IsNullOrEmpty(command.ProteinId))
         {
             return Results.Json(new { error = "both brothId and proteinId are required" }, statusCode: 400);
         }
-
-
 
         var result = await mediator.Send(command);
 
