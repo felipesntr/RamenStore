@@ -54,6 +54,8 @@ internal sealed class PlaceAnOrderCommandHandler : ICommandHandler<PlaceAnOrderC
             var orderId = generateIdResponse.OrderId;
             var description = $"{broth.Name} and {protein.Name} Ramen";
 
+            _ = Task.Run(async () => await _orderRepository.PlaceOrderAsync(new Order(orderId, broth.Id, protein.Id, description, ""), cancellationToken));
+
             return Result.Success(new PlaceAnOrderCommandResponse(orderId, description, ""));
         }
         catch (Exception)
