@@ -8,8 +8,13 @@ using RamenStore.Application.Commands.Orders.PlaceAnOrder;
 using Microsoft.AspNetCore.Mvc;
 using RamenStore.Domain.Entities.Orders;
 using Microsoft.AspNetCore.Http;
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -55,85 +60,111 @@ app.UseHttpsRedirection();
 
 var apiKey = builder.Configuration["ApiKey"];
 
-app.MapGet("/broths", async (HttpRequest request, IMediator _sender) =>
+app.MapGet("/broths", async (HttpRequest request, IMediator _sender, ILogger<Program> logger) =>
 {
-    if (!request.Headers.TryGetValue("x-api-key", out var providedApiKey) || string.IsNullOrWhiteSpace(providedApiKey))
+    try
     {
-        return Results.Json(new { error = "x-api-key header missing" }, statusCode: 403);
-    }
+        if (!request.Headers.TryGetValue("x-api-key", out var providedApiKey) || string.IsNullOrWhiteSpace(providedApiKey))
+        {
+            return Results.Json(new { error = "x-api-key header missing" }, statusCode: 403);
+        }
 
-    if (!providedApiKey.Equals(apiKey))
+        if (!providedApiKey.Equals(apiKey))
+        {
+            return Results.Json(new { message = "Forbidden" }, statusCode: 403);
+        }
+
+        var broths = await _sender.Send(new GetAllBrothsQuery());
+
+        return Results.Json(broths.Value.Data);
+    }
+    catch (Exception ex)
     {
-        return Results.Json(new { message = "Forbidden" }, statusCode: 403);
+        logger.LogError(JsonSerializer.Serialize(ex));
+        return Results.Json(new { error = "Internal Server Error" });
     }
-
-    var broths = await _sender.Send(new GetAllBrothsQuery());
-
-    return Results.Json(broths.Value.Data);
 })
 .WithName("listBroths")
 .Produces(200, typeof(IEnumerable<object>))
 .Produces(403, typeof(object));
 
-app.MapGet("/proteins", async (HttpRequest request, IMediator _sender) =>
+app.MapGet("/proteins", async (HttpRequest request, IMediator _sender, ILogger<Program> logger) =>
 {
-    if (!request.Headers.TryGetValue("x-api-key", out var providedApiKey) || string.IsNullOrWhiteSpace(providedApiKey))
+    try
     {
-        return Results.Json(new { error = "x-api-key header missing" }, statusCode: 403);
-    }
+        if (!request.Headers.TryGetValue("x-api-key", out var providedApiKey) || string.IsNullOrWhiteSpace(providedApiKey))
+        {
+            return Results.Json(new { error = "x-api-key header missing" }, statusCode: 403);
+        }
 
-    if (!providedApiKey.Equals(apiKey))
+        if (!providedApiKey.Equals(apiKey))
+        {
+            return Results.Json(new { message = "Forbidden" }, statusCode: 403);
+        }
+
+        var proteins = await _sender.Send(new GetAllProteinsQuery());
+
+        return Results.Json(proteins.Value.Data);
+    }
+    catch (Exception ex)
     {
-        return Results.Json(new { message = "Forbidden" }, statusCode: 403);
+        logger.LogError(JsonSerializer.Serialize(ex));
+        return Results.Json(new { error = "Internal Server Error" });
+
     }
-
-    var proteins = await _sender.Send(new GetAllProteinsQuery());
-
-    return Results.Json(proteins.Value.Data);
 })
 .WithName("listProteins")
 .Produces(200, typeof(IEnumerable<object>))
 .Produces(403, typeof(object));
 
 
-app.MapPost("/orders", async (PlaceAnOrderCommand command, HttpRequest request, IMediator mediator) =>
+app.MapPost("/orders", async (PlaceAnOrderCommand command, HttpRequest request, IMediator mediator, ILogger<Program> logger) =>
 {
-    if (!request.Headers.TryGetValue("x-api-key", out var providedApiKey) || string.IsNullOrWhiteSpace(providedApiKey))
+    try
     {
-        return Results.Json(new { error = "x-api-key header missing" }, statusCode: 403);
-    }
-
-    if (!providedApiKey.Equals(apiKey))
-    {
-        return Results.Json(new { message = "Forbidden" }, statusCode: 403);
-    }
-
-    if (string.IsNullOrEmpty(command.BrothId) || string.IsNullOrEmpty(command.ProteinId))
-    {
-        return Results.Json(new { error = "both brothId and proteinId are required" }, statusCode: 400);
-    }
-
-    var result = await mediator.Send(command);
-
-    if (result.IsFailure)
-    {
-        if (result.Error.Equals(OrderErrors.BothParameters))
+        if (!request.Headers.TryGetValue("x-api-key", out var providedApiKey) || string.IsNullOrWhiteSpace(providedApiKey))
         {
-            return Results.Json(new { error = OrderErrors.BothParameters.Name }, statusCode: 400);
+            return Results.Json(new { error = "x-api-key header missing" }, statusCode: 403);
         }
-    }
 
-    if (result.IsSuccess)
-    {
-        return Results.Created($"/orders/{result.Value.Id}", new
+        if (!providedApiKey.Equals(apiKey))
         {
-            id = result.Value.Id,
-            description = result.Value.Description,
-            image = "not-found.svg"
-        });
-    }
+            return Results.Json(new { message = "Forbidden" }, statusCode: 403);
+        }
 
-    return Results.Json(new { error = OrderErrors.CouldNot.Name }, statusCode: 500);
+        if (string.IsNullOrEmpty(command.BrothId) || string.IsNullOrEmpty(command.ProteinId))
+        {
+            return Results.Json(new { error = "both brothId and proteinId are required" }, statusCode: 400);
+        }
+
+        var result = await mediator.Send(command);
+
+        if (result.IsFailure)
+        {
+            if (result.Error.Equals(OrderErrors.BothParameters))
+            {
+                return Results.Json(new { error = OrderErrors.BothParameters.Name }, statusCode: 400);
+            }
+        }
+
+        if (result.IsSuccess)
+        {
+            return Results.Json(new
+            {
+                id = result.Value.Id,
+                description = result.Value.Description,
+                image = "not-found.svg"
+            }, statusCode: 201);
+        }
+
+        return Results.Json(new { error = OrderErrors.CouldNot.Name }, statusCode: 500);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(JsonSerializer.Serialize(ex));
+        return Results.Json(new { error = "Internal Server Error" });
+
+    }
 })
 .WithName("placeOrder")
 .Produces<ErrorResponse>()
