@@ -116,7 +116,7 @@ app.MapGet("/proteins", async (HttpRequest request, IMediator _sender, ILogger<P
 .Produces(200, typeof(IEnumerable<object>))
 .Produces(403, typeof(object));
 
-app.MapPost("/orders", async (PlaceAnOrderCommand command, HttpRequest request, IMediator mediator, ILogger<Program> logger) =>
+app.MapPost("/order", async (PlaceAnOrderCommand command, HttpRequest request, IMediator mediator, ILogger<Program> logger) =>
 {
     try
     {
