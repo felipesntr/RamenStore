@@ -116,7 +116,7 @@ app.MapGet("/proteins", async (HttpRequest request, IMediator _sender, ILogger<P
 .Produces(200, typeof(IEnumerable<object>))
 .Produces(403, typeof(object));
 
-app.MapPost("/order", async ([FromBody] PlaceAnOrderCommand command, HttpRequest request, IMediator mediator, ILogger<Program> logger) =>
+app.MapPost("/order", async (HttpRequest request, IMediator mediator, ILogger<Program> logger) =>
 {
     try
     {
@@ -130,10 +130,39 @@ app.MapPost("/order", async ([FromBody] PlaceAnOrderCommand command, HttpRequest
             return Results.Json(new { message = "Forbidden" }, statusCode: 403);
         }
 
+        PlaceAnOrderCommand ParseCommandFromText(string text)
+        {
+            var lines = text.Split('\n');
+            if (lines.Length < 2) return null;
+
+            var brothId = lines[0].Trim();
+            var proteinId = lines[1].Trim();
+
+            return new PlaceAnOrderCommand
+            {
+                BrothId = brothId,
+                ProteinId = proteinId
+            };
+        }
+
+        string requestBody;
+        using (var reader = new StreamReader(request.Body))
+        {
+            requestBody = await reader.ReadToEndAsync();
+        }
+
+        var command = ParseCommandFromText(requestBody);
+        if (command == null)
+        {
+            return Results.Json(new { error = "Invalid request body" }, statusCode: 400);
+        }
+
         if (string.IsNullOrEmpty(command.BrothId) || string.IsNullOrEmpty(command.ProteinId))
         {
             return Results.Json(new { error = "both brothId and proteinId are required" }, statusCode: 400);
         }
+
+
 
         var result = await mediator.Send(command);
 
