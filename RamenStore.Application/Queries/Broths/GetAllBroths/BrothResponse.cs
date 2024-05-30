@@ -8,6 +8,7 @@ namespace RamenStore.Application.Queries.Broths.GetAllBroths;
 
 public sealed class BrothResponse
 {
+    public string Id { get; init; }
     public string ImageInactive { get; init; }
     public string ImageActive { get; init; }
     public string Name { get; init; }
