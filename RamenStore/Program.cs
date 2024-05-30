@@ -58,15 +58,20 @@ var apiKey = builder.Configuration["ApiKey"];
 app.MapGet("/broths", async (HttpRequest request, IMediator _sender) =>
 {
 #if (!DEBUG)
-    if (!request.Headers.TryGetValue("x-api-key", out var providedApiKey) || string.IsNullOrWhiteSpace(providedApiKey) || !providedApiKey.Equals(apiKey))
+    if(!request.Headers.TryGetValue("x-api-key", out var providedApiKey || string.IsNullOrWhiteSpace(providedApiKey) )
     {
-        return Results.Json(new { error = "Invalid x-api-key" }, statusCode: 403);
+        return Results.Json(new { error = "x-api-key header missing" }, statusCode: 403);
+    }
+
+    if (|| !providedApiKey.Equals(apiKey))
+    {
+        return Results.Json(new { message = "Forbidden" }, statusCode: 403);
     }
 #endif
 
     var broths = await _sender.Send(new GetAllBrothsQuery());
 
-    return Results.Json(broths.Value);
+    return Results.Json(broths.Value.Data);
 })
 .WithName("listBroths")
 .Produces(200, typeof(IEnumerable<object>))
@@ -75,33 +80,37 @@ app.MapGet("/broths", async (HttpRequest request, IMediator _sender) =>
 app.MapGet("/proteins", async (HttpRequest request, IMediator _sender) =>
 {
 #if (!DEBUG)
-    if (!request.Headers.TryGetValue("x-api-key", out var providedApiKey) || string.IsNullOrWhiteSpace(providedApiKey) || !providedApiKey.Equals(apiKey))
+    if(!request.Headers.TryGetValue("x-api-key", out var providedApiKey || string.IsNullOrWhiteSpace(providedApiKey) )
     {
-        return Results.Json(new { error = "Invalid x-api-key" }, statusCode: 403);
+        return Results.Json(new { error = "x-api-key header missing" }, statusCode: 403);
+    }
+
+    if (|| !providedApiKey.Equals(apiKey))
+    {
+        return Results.Json(new { message = "Forbidden" }, statusCode: 403);
     }
 #endif
 
     var proteins = await _sender.Send(new GetAllProteinsQuery());
 
-    return Results.Json(proteins.Value);
+    return Results.Json(proteins.Value.Data);
 })
 .WithName("listProteins")
 .Produces(200, typeof(IEnumerable<object>))
 .Produces(403, typeof(object));
 
 
-app.MapPost("/orders", async (PlaceAnOrderCommand command, [FromHeader(Name = "x-api-key")] string apiKey, IMediator mediator) =>
+app.MapPost("/orders", async (PlaceAnOrderCommand command, [FromHeader(Name = "x-api-key")] string providedKey, HttpRequest request, IMediator mediator) =>
 {
-    if (string.IsNullOrEmpty(apiKey))
+#if (!DEBUG)
+    if(!request.Headers.TryGetValue("x-api-key", out var providedApiKey || string.IsNullOrWhiteSpace(providedApiKey) )
     {
         return Results.Json(new { error = "x-api-key header missing" }, statusCode: 403);
     }
 
-#if (!DEBUG)
-    // Validate API Key (in a real scenario, validate against a known value or service)
-    if (apiKey != "ZtVdh8XQ2U8pWI2gmZ7f796Vh8GllXoN7mr0djNf")
+    if (|| !providedApiKey.Equals(apiKey))
     {
-        return Results.Json(new { error = "Invalid x-api-key" }, statusCode: 403);
+        return Results.Json(new { message = "Forbidden" }, statusCode: 403);
     }
 #endif
 
@@ -134,7 +143,6 @@ app.MapPost("/orders", async (PlaceAnOrderCommand command, [FromHeader(Name = "x
 })
 .WithName("placeOrder")
 .Produces<ErrorResponse>()
-.Produces<CreatedResponse>()
 .Produces(400)
 .Produces(403);
 
@@ -142,4 +150,3 @@ app.MapPost("/orders", async (PlaceAnOrderCommand command, [FromHeader(Name = "x
 app.Run();
 
 record ErrorResponse(string error);
-record CreatedResponse(string desc);
