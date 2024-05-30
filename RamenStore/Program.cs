@@ -80,7 +80,7 @@ app.MapGet("/broths", async (HttpRequest request, IMediator _sender, ILogger<Pro
     }
     catch (Exception ex)
     {
-        logger.LogError(JsonSerializer.Serialize(ex));
+        logger.LogError("Exception caught: {Message}, StackTrace: {StackTrace}", ex.Message, ex.StackTrace);
         return Results.Json(new { error = "Internal Server Error" });
     }
 })
@@ -108,15 +108,13 @@ app.MapGet("/proteins", async (HttpRequest request, IMediator _sender, ILogger<P
     }
     catch (Exception ex)
     {
-        logger.LogError(JsonSerializer.Serialize(ex));
+        logger.LogError("Exception caught: {Message}, StackTrace: {StackTrace}", ex.Message, ex.StackTrace);
         return Results.Json(new { error = "Internal Server Error" });
-
     }
 })
 .WithName("listProteins")
 .Produces(200, typeof(IEnumerable<object>))
 .Produces(403, typeof(object));
-
 
 app.MapPost("/orders", async (PlaceAnOrderCommand command, HttpRequest request, IMediator mediator, ILogger<Program> logger) =>
 {
@@ -161,16 +159,14 @@ app.MapPost("/orders", async (PlaceAnOrderCommand command, HttpRequest request, 
     }
     catch (Exception ex)
     {
-        logger.LogError(JsonSerializer.Serialize(ex));
+        logger.LogError("Exception caught: {Message}, StackTrace: {StackTrace}", ex.Message, ex.StackTrace);
         return Results.Json(new { error = "Internal Server Error" });
-
     }
 })
 .WithName("placeOrder")
 .Produces<ErrorResponse>()
 .Produces(400)
 .Produces(403);
-
 
 app.Run();
 

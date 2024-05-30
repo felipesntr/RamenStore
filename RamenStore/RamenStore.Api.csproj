@@ -20,4 +20,10 @@
     <ProjectReference Include="..\RamenStore.Infrastructure\RamenStore.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="ramenstore.db">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
